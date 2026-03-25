@@ -352,8 +352,6 @@ void cls_motapp::ntc()
 /* Check for whether any cams are locked */
 void cls_motapp::watchdog(uint camindx)
 {
-    int indx;
-
     if (cam_list[camindx]->handler_running == false) {
         return;
     }
@@ -367,33 +365,31 @@ void cls_motapp::watchdog(uint camindx)
         , _("Camera %d - Watchdog timeout.")
         , cam_list[camindx]->cfg->device_id);
 
-    /* Shut down all the cameras */
-    for (indx=0; indx<cam_cnt; indx++) {
-        cam_list[indx]->event_stop = true;
-        pthread_mutex_unlock(&mutex_camlst);
-        pthread_mutex_unlock(&mutex_post);
-        pthread_mutex_unlock(&dbse->mutex_dbse);
-        pthread_mutex_unlock(&cam_list[indx]->stream.mutex);
+    /* Shut down only the timed-out camera */
+    cam_list[camindx]->event_stop = true;
+    pthread_mutex_unlock(&mutex_camlst);
+    pthread_mutex_unlock(&mutex_post);
+    pthread_mutex_unlock(&dbse->mutex_dbse);
+    pthread_mutex_unlock(&cam_list[camindx]->stream.mutex);
 
-        if ((cam_list[indx]->camera_type == CAMERA_TYPE_NETCAM) &&
-            (cam_list[indx]->netcam != nullptr)) {
-            pthread_mutex_unlock(&cam_list[indx]->netcam->mutex);
-            pthread_mutex_unlock(&cam_list[indx]->netcam->mutex_pktarray);
-            pthread_mutex_unlock(&cam_list[indx]->netcam->mutex_transfer);
-            cam_list[indx]->netcam->handler_stop = true;
-        }
-        if ((cam_list[indx]->camera_type == CAMERA_TYPE_NETCAM) &&
-            (cam_list[indx]->netcam_high != nullptr)) {
-            pthread_mutex_unlock(&cam_list[indx]->netcam_high->mutex);
-            pthread_mutex_unlock(&cam_list[indx]->netcam_high->mutex_pktarray);
-            pthread_mutex_unlock(&cam_list[indx]->netcam_high->mutex_transfer);
-            cam_list[indx]->netcam_high->handler_stop = true;
-        }
+    if ((cam_list[camindx]->camera_type == CAMERA_TYPE_NETCAM) &&
+        (cam_list[camindx]->netcam != nullptr)) {
+        pthread_mutex_unlock(&cam_list[camindx]->netcam->mutex);
+        pthread_mutex_unlock(&cam_list[camindx]->netcam->mutex_pktarray);
+        pthread_mutex_unlock(&cam_list[camindx]->netcam->mutex_transfer);
+        cam_list[camindx]->netcam->handler_stop = true;
+    }
+    if ((cam_list[camindx]->camera_type == CAMERA_TYPE_NETCAM) &&
+        (cam_list[camindx]->netcam_high != nullptr)) {
+        pthread_mutex_unlock(&cam_list[camindx]->netcam_high->mutex);
+        pthread_mutex_unlock(&cam_list[camindx]->netcam_high->mutex_pktarray);
+        pthread_mutex_unlock(&cam_list[camindx]->netcam_high->mutex_transfer);
+        cam_list[camindx]->netcam_high->handler_stop = true;
+    }
 
-        cam_list[indx]->handler_shutdown();
-        if (motsignal != MOTION_SIGNAL_SIGTERM) {
-            cam_list[indx]->handler_stop = false;   /*Trigger a restart*/
-        }
+    cam_list[camindx]->handler_shutdown();
+    if (motsignal != MOTION_SIGNAL_SIGTERM) {
+        cam_list[camindx]->handler_stop = false;   /*Trigger a restart*/
     }
 
 }
